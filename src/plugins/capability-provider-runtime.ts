@@ -67,18 +67,17 @@ export function resolvePluginCapabilityProviders<K extends CapabilityProviderReg
   key: K;
   cfg?: OpenClawConfig;
 }): CapabilityProviderForKey<K>[] {
-  const activeRegistry = resolveRuntimePluginRegistry();
-  const activeProviders = activeRegistry?.[params.key] ?? [];
-  if (activeProviders.length > 0) {
-    return activeProviders.map((entry) => entry.provider) as CapabilityProviderForKey<K>[];
-  }
-  const loadOptions =
+  const registry =
     params.cfg === undefined
-      ? undefined
-      : {
+      ? resolveRuntimePluginRegistry()
+      : resolveRuntimePluginRegistry({
+          // When cfg is provided, prefer a config-aware registry load over the
+          // current active registry. Conversation/runtime bootstrap can swap in
+          // a partial active registry that omits compat-enabled bundled
+          // providers such as ElevenLabs, which breaks config-driven capability
+          // resolution.
           config: resolveCapabilityProviderConfig({ key: params.key, cfg: params.cfg }),
-        };
-  const registry = resolveRuntimePluginRegistry(loadOptions);
+        });
   return (registry?.[params.key] ?? []).map(
     (entry) => entry.provider,
   ) as CapabilityProviderForKey<K>[];
